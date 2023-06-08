@@ -7,6 +7,28 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
+void displayProgressBar(int progress, int total) {
+    constexpr int barWidth = 50;
+
+    // Calculate the percentage completed
+    float percentage = static_cast<float>(progress) / total;
+    int completedWidth = static_cast<int>(barWidth * percentage);
+
+    // Display the progress bar
+    std::cout << "[";
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < completedWidth) {
+            std::cout << "=";
+        } else if (i == completedWidth) {
+            std::cout << ">";
+        } else {
+            std::cout << " ";
+        }
+    }
+    std::cout << "] " << static_cast<int>(percentage * 100) << "%\r";
+    std::cout.flush();
+}
+
 std::vector<std::string> getVideoFiles(const std::string& folderPath) {
     std::vector<std::string> videoFiles;
     DIR* dir;
@@ -145,6 +167,8 @@ int main(int argc, char* argv[]) {
                                 cv::Size(targetWidth, targetHeight));
 
     for (int j = 0; j < clipDuration * fps; ++j) {
+        displayProgressBar(j, clipDuration * fps);
+
         cv::Mat mosaic = cv::Mat::zeros(targetHeight, targetWidth, type);
 
         for (int i = 0; i < numClips; ++i) {
@@ -158,7 +182,7 @@ int main(int argc, char* argv[]) {
             // Overlay the clip on the mosaic
             cv::Rect roi(posX, posY, tileWidth, tileHeight);
 
-            cv::Mat tile(tileHeight, tileWidth, type, cv::Scalar(255, 255, 255));
+            cv::Mat tile(tileHeight, tileWidth, type, cv::Scalar(0, 0, 0));
             // cv::resize(clip, tile, cv::Size(tileWidth, tileHeight));            
             // tile.copyTo(mosaic(roi));
             // Calculate the aspect ratio of the original clip
