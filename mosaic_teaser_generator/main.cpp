@@ -6,54 +6,6 @@
 #include <opencv2/opencv.hpp>
 #include <dirent.h>
 #include <sys/stat.h>
-#include <experimental/filesystem>
-
-bool copyFile(const std::string& sourceFile, const std::string& targetFile) {
-    std::ifstream src(sourceFile, std::ios::binary);
-    std::ofstream dst(targetFile, std::ios::binary);
-
-    if (!src || !dst) {
-        std::cerr << "Failed to open files" << std::endl;
-        return false;
-    }
-
-    struct stat fileInfo;
-    if (stat(sourceFile.c_str(), &fileInfo) != 0) {
-        std::cerr << "Failed to get file information" << std::endl;
-        return false;
-    }
-
-    char buffer[BUFSIZ];
-    std::streamsize bytesRead;
-    while ((bytesRead = src.readsome(buffer, sizeof(buffer)))) {
-        if (!dst.write(buffer, bytesRead)) {
-            std::cerr << "Failed to write to target file" << std::endl;
-            return false;
-        }
-    }
-
-    src.close();
-    dst.close();
-
-    if (chmod(targetFile.c_str(), fileInfo.st_mode & 07777) != 0) {
-        std::cerr << "Failed to set file permissions" << std::endl;
-        return false;
-    }
-
-    return true;
-}
-
-namespace fs = std::experimental::filesystem;
-
-bool deleteFolder(const std::string& folderPath) {
-    try {
-        fs::remove_all(folderPath);
-        return true;
-    } catch (const std::exception& ex) {
-        std::cerr << "Failed to delete folder: " << ex.what() << std::endl;
-        return false;
-    }
-}
 
 std::vector<std::string> getVideoFiles(const std::string& folderPath) {
     std::vector<std::string> videoFiles;
@@ -82,28 +34,58 @@ std::vector<int> generateRandomIndices(int count, int max) {
     }
     return indices;
 }
+double calculateMedian(std::vector<double>& values) {
+    size_t size = values.size();
+    std::sort(values.begin(), values.end());
+
+    if (size % 2 == 0) {
+        // If the size is even, average the two middle elements
+        return (values[size / 2 - 1] + values[size / 2]) / 2.0;
+    } else {
+        // If the size is odd, return the middle element
+        return values[size / 2];
+    }
+}
 
 int main(int argc, char* argv[]) {
+
+    std::srand(static_cast<unsigned int>(std::time(0)));
     // Set the parameters
-    int gridWidth = 2;
-    int gridHeight = 2;
+    int gridWidth;
+    int gridHeight;
     int targetWidth = 1080;
-    int targetHeight = 4*targetWidth/3;
-    int tileWidth = targetWidth/gridWidth;
-    int tileHeight = targetHeight/gridHeight;
+    double mosaicRatio = 1.;
+
     int clipDuration = 3;
 
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " -f <folder_path>" << std::endl;
-        return 1;
+    if (argc != 7) {
+        std::cout << "Usage: " << argv[0] << " -f <folder_path> -d <clip_duration> -s <width_value>x<height_value>" << std::endl;
+        return -1;
     }
 
     std::string videoFolder;
-    for (int i = 1; i < argc; ++i) {
+
+    // Parse command line arguments
+    for (int i = 1; i < argc; i += 2) {
         std::string arg = argv[i];
-        if (arg == "-f" && i + 1 < argc) {
-            videoFolder = argv[i + 1];
-            break;
+        std::string value = argv[i + 1];
+
+        if (arg == "-f") {
+            videoFolder = value;
+        } else if (arg == "-d") {
+            clipDuration = std::stoi(value);
+        } else if (arg == "-s") {
+            size_t separatorPos = value.find('x');
+            if (separatorPos != std::string::npos) {
+                gridWidth = std::stoi(value.substr(0, separatorPos));
+                gridHeight = std::stoi(value.substr(separatorPos + 1));
+            } else {
+                std::cout << "Invalid size format. Use <width_value>x<height_value>." << std::endl;
+                return -1;
+            }
+        } else {
+            std::cout << "Unknown option: " << arg << std::endl;
+            return -1;
         }
     }
 
@@ -124,6 +106,36 @@ int main(int argc, char* argv[]) {
     auto now = std::chrono::system_clock::now();
     std::time_t time = std::chrono::system_clock::to_time_t(now);
 
+    double fps;
+    int type;
+    std::vector<double> aspectRatios;
+    // Extract random clips and create the mosaic
+    std::vector<cv::VideoCapture*> videos;
+    for (int i = 0; i < numClips; ++i) {
+        // Load the video
+        videos.push_back(new cv::VideoCapture(videoFiles[randomIndices[i]]));
+        cv::VideoCapture* video = videos.back(); 
+
+        // Get the input video's properties
+        fps = video->get(cv::CAP_PROP_FPS);
+
+        // Get a random start frame
+        int frameCount = video->get(cv::CAP_PROP_FRAME_COUNT);
+        int startFrame = std::rand() % int(frameCount - clipDuration * fps);
+        // Set the current frame to the start frame
+        cv::Mat frame;
+        *video >> frame;
+        type = frame.type();
+        aspectRatios.push_back(static_cast<double>(frame.cols) / frame.rows);
+
+        video->set(cv::CAP_PROP_POS_FRAMES, startFrame); 
+    }
+
+    mosaicRatio =  calculateMedian(aspectRatios);
+    int targetHeight = targetWidth/mosaicRatio;
+    int tileWidth = targetWidth/gridWidth;
+    int tileHeight = targetHeight/gridHeight;
+
     // Format the date as a string
     std::stringstream ss;
     ss << "mosaic_output_" << std::put_time(std::localtime(&time), "%Y%m%d") << ".mp4";
@@ -131,44 +143,6 @@ int main(int argc, char* argv[]) {
     // OpenCV video writer
     cv::VideoWriter outputVideo(outputFilename, cv::VideoWriter::fourcc('X', '2', '6', '4'), 30,
                                 cv::Size(targetWidth, targetHeight));
-
-    struct stat info;
-    if (stat("/tmp/clips/", &info) == -1) {
-        mkdir("/tmp/clips/", 0700);
-    }
-    double fps;
-    int width;
-    int height;
-    int type=-3;
-    // Extract random clips and create the mosaic
-    std::vector<cv::VideoCapture*> videos;
-    for (int i = 0; i < numClips; ++i) {
-        // Load the video
-        if (copyFile(videoFiles[randomIndices[i]], "/tmp/clips/clip_"+std::to_string(i)+".mp4")) {
-            std::cout << "Video file copied to: " << "/tmp/clips/clip_"+std::to_string(i)+".mp4" << std::endl;
-            videos.push_back(new cv::VideoCapture(videoFiles[randomIndices[i]]));
-            cv::VideoCapture* video = videos.back(); 
-  
-            // Get the input video's properties
-            fps = video->get(cv::CAP_PROP_FPS);
-            width = video->get(cv::CAP_PROP_FRAME_WIDTH);
-            height = video->get(cv::CAP_PROP_FRAME_HEIGHT);
-
-            // Get a random start frame
-            int frameCount = video->get(cv::CAP_PROP_FRAME_COUNT);
-            int startFrame = std::rand() % int(frameCount - clipDuration * fps);
-            // Set the current frame to the start frame
-            if(type == -3){
-                cv::Mat frame;
-                *video >> frame;
-                type = frame.type();
-            }
-            video->set(cv::CAP_PROP_POS_FRAMES, startFrame); 
-        } else {
-            std::cerr << "Failed to copy video file" << std::endl;
-            exit(1);
-        }
-    }
 
     for (int j = 0; j < clipDuration * fps; ++j) {
         cv::Mat mosaic = cv::Mat::zeros(targetHeight, targetWidth, type);
@@ -215,8 +189,6 @@ int main(int argc, char* argv[]) {
     // Release the video writer and finish
     outputVideo.release();
     std::cout << "Mosaic video created successfully: " << outputFilename << std::endl;
-    
-    deleteFolder("/tmp/clips/");;
     
     return 0;
 }

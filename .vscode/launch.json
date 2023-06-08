@@ -11,7 +11,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/mosaic_teaser_generator/build/mosaic_gen",
     
-          "args":["-f" ,"~/Vidéos/20230607/mosaic"],
+          "args":["-f" ,"~/Vidéos/20230607/mosaic","-d","3","-s","3x3"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

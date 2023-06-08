@@ -1,1 +1,2 @@
-./mosaic_teaser_generator/build/
+*build/
+*.mp4
