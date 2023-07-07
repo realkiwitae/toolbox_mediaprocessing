@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 17)
-project(mosaic-gen) #name of your project
+project(teaser) #name of your project
 
 add_executable(teaser main.cpp)
 
