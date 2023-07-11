@@ -11,12 +11,38 @@ void treatImage(std::string img_path,cv::Mat logo_img,std::string output_folder,
 void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder, int id);
 void addLogo(cv::Mat& img, cv::Mat logo_img);
 
+int percentage = 10;
+
+void displayProgressBar(int progress, int total) {
+    constexpr int barWidth = 50;
+
+    // Calculate the percentage completed
+    float percentage = static_cast<float>(progress) / total;
+    int completedWidth = static_cast<int>(barWidth * percentage);
+
+    // Display the progress bar
+    std::cout << "[";
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < completedWidth) {
+            std::cout << "=";
+        } else if (i == completedWidth) {
+            std::cout << ">";
+        } else {
+            std::cout << " ";
+        }
+    }
+    std::cout << "] " << static_cast<int>(percentage * 100) << "%\r";
+    std::cout.flush();
+}
+
+
+
 int main(int argc, char* argv[]) {
 
  // Usage build/watermark -i <input_folder> -l <logo> -o <output_folder> -p <position> -s <size>
 
-    if(argc != 7) {
-        std::cout << "Usage: " << argv[0] << " -i <input_folder> -l <logo> -o <output_folder>" << std::endl;
+    if(argc != 9) {
+        std::cout << "Usage: " << argv[0] << " -i <input_folder> -l <logo> -o <output_folder> -p <percentage>" << std::endl;
         return 1;
     }
 
@@ -32,6 +58,9 @@ int main(int argc, char* argv[]) {
         } else if (std::string(argv[i]) == "-o") {
             output_folder = argv[i + 1];
             i++;
+        }else if (std::string(argv[i]) == "-p") {
+            i++;
+            percentage = std::stoi(argv[i]);
         }
     }
 
@@ -44,6 +73,9 @@ int main(int argc, char* argv[]) {
 
     // create output folder if not exist
     mkdir(output_folder.c_str(), 0777);
+    // empty folder
+    std::string cmd = "rm -rf " + output_folder + "/*";
+    system(cmd.c_str());
 
     // for each image in input_folder
     DIR *dir;
@@ -66,12 +98,6 @@ int main(int argc, char* argv[]) {
         }else{
             treatImage(file_path, logo_img, output_folder, ++img_count);
         }
- 
-
-
-
-
-        
     }
 
     return 0;
@@ -115,7 +141,7 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
     int frame_width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
     int frame_height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
     double fps = cap.get(cv::CAP_PROP_FPS);
-   // int frame_count = cap.get(cv::CAP_PROP_FRAME_COUNT);
+    int frame_count = cap.get(cv::CAP_PROP_FRAME_COUNT);
 
     // create output video
     std::string vid_count_str = std::to_string(id);
@@ -127,7 +153,14 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
 
     // for each frame add the logo
     cv::Mat frame;
+
+    // make progress bar
+    int progress = 0;
+
     while (true) {
+        progress++;
+        displayProgressBar(progress, frame_count);
+
         cap >> frame;
         if (frame.empty()) {
             break;
@@ -143,6 +176,10 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
 
         video.write(frame);
     }
+
+    // free vieo capture
+    cap.release();
+    video.release();
     // // keep sound from original video
     std::string cmd = "ffmpeg -i " + file_path + " -i " + tmp_video + " -c copy -map 1:v:0 -map 0:a:0 " + output_path;
     // silence output
@@ -153,9 +190,7 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
     cmd = "rm " + tmp_video;
     system(cmd.c_str());
 
-    // free vieo capture
-    cap.release();
-    video.release();
+
 
 }
 
@@ -167,13 +202,24 @@ void addLogo(cv::Mat& img, cv::Mat logo_img){
     }
     // resize logo to fit in the low right corner, at 10% of the image height at least 100px, size of logo should be 10% of the image height
     cv::Mat logo_resized;
+    bool middle = false;
+    int factor = percentage;
     // logo size = 10% of image height or 100px
-    int logo_size = img.rows / 10;
+    if(percentage < 0){
+        factor = 30;
+        middle = true;
+    } 
+
+    int logo_size = img.rows * factor / 100;
     cv::resize(logo_img, logo_resized, cv::Size(int(logo_size*(double)logo_img.cols/logo_img.rows) , logo_size));
 
     // add logo in bottom right corner + 10% of the image height
-    cv::Rect roi = cv::Rect(logo_size/4, logo_size/4, logo_resized.cols, logo_resized.rows);
+    cv::Rect roi;
+    if(!middle) roi = cv::Rect(10, 10, logo_resized.cols, logo_resized.rows);
+    // add logo middle of the image
+    else roi = cv::Rect(img.cols/2 - logo_resized.cols/2, img.rows/2 - logo_resized.rows/2, logo_resized.cols, logo_resized.rows);
+
     cv::Mat destinationROI = img(roi);
-    cv::addWeighted(destinationROI, 1.0, logo_resized, 1., 0.0, destinationROI);
+    cv::addWeighted(destinationROI, 1.0, logo_resized, middle?.8:1., 0.0, destinationROI);
 
 }

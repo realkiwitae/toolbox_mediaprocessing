@@ -11,7 +11,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/watermark/build/watermark",
     
-          "args":["-i", "./watermark/input", "-l", "~/Vidéos/logo.png", "-o" ,"./watermark/output"],
+          "args":["-i", "./watermark/input", "-l", "~/Vidéos/logo.png", "-o" ,"./watermark/output","-p","50"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
