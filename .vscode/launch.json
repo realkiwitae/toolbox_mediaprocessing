@@ -9,9 +9,9 @@
             "name": "(gdb) Lancer",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/mosaic_teaser_generator/build/mosaic_gen",
+            "program": "${workspaceFolder}/watermark/build/watermark",
     
-          "args":["-f" ,"~/Vidéos/20230607/mosaic","-d","3","-s","3x3"],
+          "args":["-i", "./watermark/input", "-l", "~/Vidéos/logo.png", "-o" ,"./watermark/output"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
