@@ -9,9 +9,10 @@
 
 void treatImage(std::string img_path,cv::Mat logo_img,std::string output_folder, int id);
 void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder, int id);
-void addLogo(cv::Mat& img, cv::Mat logo_img);
+void addLogo(cv::Mat& img, cv::Mat logo_img, int p);
 
-int percentage = 10;
+int percentage_img = 10;
+int percentage_vid = 10;
 
 void displayProgressBar(int progress, int total) {
     constexpr int barWidth = 50;
@@ -41,8 +42,8 @@ int main(int argc, char* argv[]) {
 
  // Usage build/watermark -i <input_folder> -l <logo> -o <output_folder> -p <position> -s <size>
 
-    if(argc != 9) {
-        std::cout << "Usage: " << argv[0] << " -i <input_folder> -l <logo> -o <output_folder> -p <percentage>" << std::endl;
+    if(argc != 10) {
+        std::cout << "Usage: " << argv[0] << " -i <input_folder> -l <logo> -o <output_folder> -p <p_img> <p_video>" << std::endl;
         return 1;
     }
 
@@ -59,8 +60,8 @@ int main(int argc, char* argv[]) {
             output_folder = argv[i + 1];
             i++;
         }else if (std::string(argv[i]) == "-p") {
-            i++;
-            percentage = std::stoi(argv[i]);
+            percentage_img = std::stoi(argv[++i]);
+            percentage_vid = std::stoi(argv[++i]);            
         }
     }
 
@@ -110,7 +111,7 @@ void treatImage(std::string img,cv::Mat logo_img,std::string output_folder, int 
 
     // read image
     cv::Mat img_mat = cv::imread(img, cv::IMREAD_UNCHANGED);
-    addLogo(img_mat, logo_img);
+    addLogo(img_mat, logo_img, percentage_img);
     
     std::string img_count_str = std::to_string(id);
     img_count_str = std::string(2 - img_count_str.length(), '0') + img_count_str;
@@ -165,7 +166,7 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
         if (frame.empty()) {
             break;
         }
-        addLogo(frame, logo_img);
+        addLogo(frame, logo_img, percentage_vid);
 
         // // show frame
         // cv::imshow("Frame", frame);
@@ -195,7 +196,7 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
 }
 
 
-void addLogo(cv::Mat& img, cv::Mat logo_img){
+void addLogo(cv::Mat& img, cv::Mat logo_img, int p){
     // if no alpha channel, add alpha channel
     if (img.channels() == 3) {
         cv::cvtColor(img, img, cv::COLOR_BGR2BGRA);
@@ -203,14 +204,13 @@ void addLogo(cv::Mat& img, cv::Mat logo_img){
     // resize logo to fit in the low right corner, at 10% of the image height at least 100px, size of logo should be 10% of the image height
     cv::Mat logo_resized;
     bool middle = false;
-    int factor = percentage;
     // logo size = 10% of image height or 100px
-    if(percentage < 0){
-        factor = 30;
+    if(p < 0){
+        p = 30;
         middle = true;
     } 
 
-    int logo_size = img.rows * factor / 100;
+    int logo_size = img.rows * p / 100;
     cv::resize(logo_img, logo_resized, cv::Size(int(logo_size*(double)logo_img.cols/logo_img.rows) , logo_size));
 
     // add logo in bottom right corner + 10% of the image height
