@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <vector>
 #include <opencv2/opencv.hpp>
+#include <opencv2/tracking.hpp>
 #include <dirent.h>
 #include <sys/stat.h>
 
@@ -59,10 +60,6 @@ int main(int argc, char* argv[]) {
     cv::Rect roi = cv::Rect((banner.cols - logo_resized.cols) / 2, (banner.rows - logo_resized.rows) / 2, logo_resized.cols, logo_resized.rows);
     logo_resized.copyTo(banner(roi));
 
-    //show banner
-    cv::imshow("banner", banner);
-    cv::waitKey(0);
-
     // save bannr in ./output/banner.png
 
     // create output directory if it does not exist
@@ -71,6 +68,65 @@ int main(int argc, char* argv[]) {
         std::cout << "creating output directory" << std::endl;
         mkdir("./output", 0777);
     }
+
+    // for each file in ./input open select tool to copy logos onto banner and update banner visual
+    DIR* dir;
+    struct dirent* ent;
+
+    // for each file in ./input
+    std::string input_path = "input/";
+    dir = opendir(input_path.c_str());
+    while ((ent = readdir(dir)) != NULL) {
+        std::string filename = ent->d_name;
+        if (filename == "." || filename == "..") {
+            continue;
+        }
+        std::cout << "processing " << filename << std::endl;
+        // open select tool
+        // load image in filename
+        cv::Mat img = cv::imread(input_path + filename, cv::IMREAD_UNCHANGED);
+        if (img.empty()) {
+            std::cout << "Could not read the image: " << input_path + filename << std::endl;
+            continue;
+        }
+
+        cv::Rect roi_touse = cv::selectROI(banner);
+        cv::waitKey(0);
+
+        // resize using roi_touse dimension, img keeping aspect ratio
+        cv::Mat img_resized, img_alpha;
+
+        // init img_resized_alpha to be transparent
+        img_alpha = cv::Mat(img.size(), CV_8UC4, cv::Scalar(0, 0, 0, 0));
+
+        // convert type to match banner
+        if (img.channels() < 4) {
+            // assume lack of alpha channel means image is BGR
+            // convert all white pixels to transparent
+            cv::Mat mask;
+            cv::inRange(img, cv::Scalar(0, 0, 0), cv::Scalar(245, 245, 245), mask);
+            //convert to rgba
+            cv::cvtColor(img, img, cv::COLOR_BGR2BGRA);
+            img.copyTo(img_alpha, mask);
+
+        }
+        else{
+            img_alpha = img;
+        }
+        cv::resize(img_alpha, img_alpha, roi_touse.size(), 0, 0, cv::INTER_AREA);
+
+        // add img_alpha to banner
+        cv::Mat banner_roi = banner(roi_touse);
+        cv::addWeighted(banner_roi, 1.0, img_alpha, 1.0, 0.0, banner_roi);
+        
+
+        // update banner visual
+        
+    }
+
+    //show banner
+    cv::imshow("banner", banner);
+    cv::waitKey(0);
 
     // save banner
     cv::imwrite("./output/banner.png", banner);
