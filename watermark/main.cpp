@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <vector>
 #include <opencv2/opencv.hpp>
+#include <opencv2/tracking.hpp>
 #include <sys/stat.h>
 #include <dirent.h>
 
@@ -71,6 +72,21 @@ int main(int argc, char* argv[]) {
         std::cout << "Could not read the image: " << logo << std::endl;
         return 1;
     }
+
+    // // select roi on logo use select roi on smaller image
+    // cv::Mat logo_toshow;
+    // cv::resize(logo_img, logo_toshow, cv::Size(), .2, 0.2);
+    // cv::Rect roi;
+    // roi = cv::selectROI(logo_toshow);
+    // //convert to match original image
+    // roi.x *= 5;
+    // roi.y *= 5;
+    // roi.width *= 5;
+    // roi.height *= 5;
+
+    // // save to logo_noslogan.png
+    // cv::Mat logo_noslogan = logo_img(roi);
+    // cv::imwrite("logo_noslogan.png", logo_noslogan);
 
     // create output folder if not exist
     mkdir(output_folder.c_str(), 0777);
