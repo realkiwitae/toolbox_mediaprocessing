@@ -9,9 +9,9 @@
             "name": "(gdb) Lancer",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/watermark/build/watermark",
+            "program": "${workspaceFolder}/resizer/build/resizer",
     
-          "args":["-i", "./watermark/input", "-l", "~/Vidéos/logo.png", "-o" ,"./watermark/output","-p","50"],
+          "args":["-i", "./resizer/input", "-l", "-o" ,"./watermark/output","-s","3024x4032"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

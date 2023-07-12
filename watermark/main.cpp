@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
     }
 
     std::string input_folder, logo, output_folder;
-    
+    output_folder = "./output";
     for (int i = 1; i < argc; i++) {
         if (std::string(argv[i]) == "-i") {
             input_folder = argv[i + 1];
@@ -222,7 +222,7 @@ void addLogo(cv::Mat& img, cv::Mat logo_img, int p){
     bool middle = false;
     // logo size = 10% of image height or 100px
     if(p < 0){
-        p = 30;
+        p = fabs(p);
         middle = true;
     } 
 
