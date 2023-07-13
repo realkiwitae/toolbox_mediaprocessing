@@ -68,7 +68,7 @@ std::string modelPath = "models/FSRCNN-small_x2.pb";
 
 int main(int argc, char* argv[]) {
 
- // build/resizer -i <input_folder> -o <output_folder> -s <scale_factor> -m <model_path> 
+ // build/enhancer -i <input_folder> -o <output_folder> -s <scale_factor> -m <model_path> 
     // add usage
     if(argc != 9) {
         std::cout << "Usage: " << argv[0] << " -i <input_folder> -o <output_folder> -s <scale_factor> -m <model_path>" << std::endl;
