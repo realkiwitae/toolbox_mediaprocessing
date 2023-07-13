@@ -166,7 +166,7 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
     std::string output_path = output_folder + "/vid_" + vid_count_str + ".mp4";
     
     std::string tmp_video = "/tmp/tmp.mp4";
-    cv::VideoWriter video(tmp_video, cv::VideoWriter::fourcc('m', 'p', '4', 'v'), fps, cv::Size(frame_width, frame_height));
+    cv::VideoWriter video(tmp_video, cv::VideoWriter::fourcc('a','v','c','1'), fps, cv::Size(frame_width, frame_height));
 
     // for each frame add the logo
     cv::Mat frame;
@@ -206,9 +206,10 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
      // remove tmp video
     cmd = "rm " + tmp_video;
     system(cmd.c_str());
-
-
-
+    
+    // // fix codec 
+    // cmd = "ffmpeg -i " + output_path + " -vcodec libx264 -acodec aac " + "./output/o.mp4";
+    // system(cmd.c_str());
 }
 
 
@@ -231,7 +232,7 @@ void addLogo(cv::Mat& img, cv::Mat logo_img, int p){
 
     // add logo in bottom right corner + 10% of the image height
     cv::Rect roi;
-    if(!middle) roi = cv::Rect(10, 10, logo_resized.cols, logo_resized.rows);
+    if(!middle) roi = cv::Rect(20, 20, logo_resized.cols, logo_resized.rows);
     // add logo middle of the image
     else roi = cv::Rect(img.cols/2 - logo_resized.cols/2, img.rows/2 - logo_resized.rows/2, logo_resized.cols, logo_resized.rows);
 
