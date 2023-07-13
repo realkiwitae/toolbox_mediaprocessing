@@ -44,6 +44,12 @@ int main(int argc, char* argv[]) {
  // Usage build/watermark -i <input_folder> -l <logo> -o <output_folder> -p <position> -s <size>
 
     if(argc != 10) {
+        std::cout << argc << std::endl;
+        // print all args
+        for (int i = 0; i < argc; i++) {
+            std::cout << argv[i] << " ";
+        }
+        std::cout << std::endl;
         std::cout << "Usage: " << argv[0] << " -i <input_folder> -l <logo> -o <output_folder> -p <p_img> <p_video>" << std::endl;
         return 1;
     }
@@ -131,7 +137,12 @@ void treatImage(std::string img,cv::Mat logo_img,std::string output_folder, int 
     
     std::string img_count_str = std::to_string(id);
     img_count_str = std::string(2 - img_count_str.length(), '0') + img_count_str;
-    std::string output_path = output_folder + "/img_" + img_count_str + ".jpg"; 
+    // get today date format yyyymmdd
+    std::time_t t = std::time(nullptr);
+    std::tm tm = *std::localtime(&t);
+    std::string date = std::to_string(tm.tm_year + 1900) + std::to_string(tm.tm_mon + 1) + std::to_string(tm.tm_mday);
+
+    std::string output_path = output_folder + "/img_" + date +"_"+ img_count_str + ".jpg"; 
     cv::imwrite(output_path, img_mat);
 
 }
@@ -161,9 +172,14 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
     int frame_count = cap.get(cv::CAP_PROP_FRAME_COUNT);
 
     // create output video
+    
     std::string vid_count_str = std::to_string(id);
     vid_count_str = std::string(2 - vid_count_str.length(), '0') + vid_count_str;
-    std::string output_path = output_folder + "/vid_" + vid_count_str + ".mp4";
+    std::time_t t = std::time(nullptr);
+    std::tm tm = *std::localtime(&t);
+    std::string date = std::to_string(tm.tm_year + 1900) + std::to_string(tm.tm_mon + 1) + std::to_string(tm.tm_mday);
+
+    std::string output_path = output_folder + "/vid_" + date + "_" + vid_count_str + ".mp4"; 
     
     std::string tmp_video = "/tmp/tmp.mp4";
     cv::VideoWriter video(tmp_video, cv::VideoWriter::fourcc('a','v','c','1'), fps, cv::Size(frame_width, frame_height));

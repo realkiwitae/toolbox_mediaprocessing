@@ -12,20 +12,20 @@ void treatImage(std::string img,std::string output_folder, int id);
 
 int width = 3024;
 int height = 4032;
+bool bypass_crop = false;
 
 int main(int argc, char* argv[]) {
 
  // build/resizer -i <input_folder> -o <output_folder> -s <size>
     // add usage
     if (argc < 7) {
-        std::cout << "Usage: " << argv[0] << " -i <input_folder> -o <output_folder> -s <size>" << std::endl;
+        std::cout << "Usage: " << argv[0] << " -i <input_folder> -o <output_folder> -s <size> -b" << std::endl;
         return 0;
     }
 
 
     std::string input_folder, output_folder;
     output_folder = "./output";
-
     for (int i = 1; i < argc; i++) {
         if (std::string(argv[i]) == "-i") {
             input_folder = argv[i + 1];
@@ -39,6 +39,8 @@ int main(int argc, char* argv[]) {
             std::string delimiter = "x";
             width = std::stoi(size.substr(0, size.find(delimiter)));
             height = std::stoi(size.substr(size.find(delimiter) + 1));
+        }else if(std::string(argv[i]) == "-b"){
+            bypass_crop = true;
         }
     }
 
@@ -95,8 +97,9 @@ void treatImage(std::string img,std::string output_folder, int id){
     imgclone = showing_img.clone();
     //select roi
     // while no press on F key selectROI
-    cv::Rect2d roi = cv::Rect2d(0, 0, showing_img.cols*.90, showing_img.rows*.90);
-    while (true) {
+    double percent = 1. - .1*!bypass_crop; 
+    cv::Rect2d roi = cv::Rect2d(0, 0, showing_img.cols*percent, showing_img.rows*percent);
+    while (!bypass_crop) {
         showing_img = imgclone.clone();
         // make mask to add transparency outside of selected roi
         cv::Mat mask = cv::Mat::zeros(showing_img.rows, showing_img.cols, CV_8UC1);
