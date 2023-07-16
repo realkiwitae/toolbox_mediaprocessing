@@ -107,6 +107,7 @@ void treatImage(std::string img,std::string output_folder, int id){
         // add mask to image
         cv::Mat mask_rgb;
         cv::cvtColor(mask, mask_rgb, cv::COLOR_GRAY2BGR);
+        // cout dim and type of showing_img and mask_rgb
         cv::addWeighted(showing_img, 1.0, mask_rgb, 0.3, 0.0, showing_img);
         // show image
         cv::imshow("Image", showing_img);

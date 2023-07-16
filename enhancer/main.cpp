@@ -10,6 +10,13 @@
 #include <opencv2/dnn_superres.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+
+// include cuda
+// #include <opencv2/cudaarithm.hpp>
+// #include <opencv2/cudafilters.hpp>
+// #include <opencv2/cudaimgproc.hpp>
+// #include <opencv2/cudawarping.hpp>
+
  
 using namespace std;
 using namespace cv;
@@ -160,7 +167,7 @@ void treatVideo(std::string file_path,std::string output_folder, int id){
     vid_count_str = std::string(2 - vid_count_str.length(), '0') + vid_count_str;
     std::string output_path = output_folder + "/vid_" + vid_count_str + ".mp4";
     
-    std::string tmp_video = "tmp/tmp.mp4";
+    std::string tmp_video = "/tmp/tmp.mp4";
     cv::VideoWriter video(tmp_video, cv::VideoWriter::fourcc('a','v','c','1'), fps, cv::Size(frame_width*scaleFactor, frame_height*scaleFactor));
 
     // for each frame add the logo
