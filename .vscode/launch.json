@@ -9,9 +9,9 @@
             "name": "(gdb) Lancer",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/enhancer/build/enhancer",
+            "program": "${workspaceFolder}/resizer/build/resizer",
     
-          "args":["-i", "enhancer/input", "-o" ,"enhancer/output","-s","4","-m","enhancer/models/FSRCNN_x4.pb"],
+          "args":["-i", "resizer/input", "-o" ,"resizer/output","-s","3024x4032"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

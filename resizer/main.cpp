@@ -7,6 +7,7 @@
 #include <opencv2/tracking.hpp>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <unistd.h>
 
 void treatImage(std::string img,std::string output_folder, int id);
 
@@ -80,11 +81,15 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
+bool mouse_released = false;
+cv::Point2d mouse_pos;
+
 void treatImage(std::string img,std::string output_folder, int id){
     
+
     //print processing...
     std::cout << "Processing image: " << img << std::endl;
-
+    bool bAddedMarker = false;
     // read image
     cv::Mat img_mat = cv::imread(img, cv::IMREAD_UNCHANGED);
     cv::Mat showing_img,imgclone;
@@ -97,7 +102,7 @@ void treatImage(std::string img,std::string output_folder, int id){
     imgclone = showing_img.clone();
     //select roi
     // while no press on F key selectROI
-    double percent = 1. - .1*!bypass_crop; 
+    double percent = 1.; 
     cv::Rect2d roi = cv::Rect2d(0, 0, showing_img.cols*percent, showing_img.rows*percent);
     while (!bypass_crop) {
         showing_img = imgclone.clone();
@@ -111,6 +116,26 @@ void treatImage(std::string img,std::string output_folder, int id){
         cv::addWeighted(showing_img, 1.0, mask_rgb, 0.3, 0.0, showing_img);
         // show image
         cv::imshow("Image", showing_img);
+
+    // mouse callback
+
+    cv::setMouseCallback("Image", [](int event, int x, int y, int flags, void* userdata) {
+        if (event == cv::EVENT_LBUTTONUP) {
+            // mouse released
+            mouse_released = true;
+                std::cout << "Mouse released" << std::endl;
+        }
+        if (event == cv::EVENT_MOUSEMOVE) {
+            // mouse moved
+            mouse_pos = cv::Point(x,y);
+        }
+        if(event == cv::EVENT_LBUTTONDOWN){
+            // mouse pressed
+            mouse_released = false;
+            std::cout << "Mouse pressed" << std::endl;
+        }
+    });
+
         int key = cv::waitKey(30);
         // if key F break
         if (key == 102) {
@@ -163,6 +188,44 @@ void treatImage(std::string img,std::string output_folder, int id){
         }
         if (roi.y + roi.height > showing_img.rows) {
             roi.y = showing_img.rows - roi.height;
+        }
+
+        // press a to reload bAddedMarker
+        if(key == 97){
+            bAddedMarker = false;
+        }
+        // press o and left click to load ofmarker
+        if(key == 111 && !mouse_released && !bAddedMarker){
+            bAddedMarker = true;
+            // load image ./symbol/ofmarker.png
+            cv::Mat ofmarker = cv::imread("./symbol/ofmarker.png", cv::IMREAD_UNCHANGED);
+
+            cv::resize(ofmarker, ofmarker, cv::Size(img_mat.cols*.4,img_mat.cols*.4*ofmarker.rows/ofmarker.cols));
+            if(ofmarker.channels() != 3){
+                //add alpha channel
+                cv::cvtColor(ofmarker, ofmarker, cv::COLOR_BGRA2BGR);
+            }
+            //convert to img_mat type
+            std::cout << "type ofmarker: " << ofmarker.type() << " " << ofmarker.channels() << std::endl;
+            std::cout << "img_mat type: " << img_mat.type() << " " << img_mat.channels() << std::endl;
+            // copy to mouse position
+            cv::Rect2d ofmarker_roi = cv::Rect2d(mouse_pos.x, mouse_pos.y, ofmarker.cols, ofmarker.rows);
+            ofmarker_roi.x *= (double)img_mat.cols / target;
+            ofmarker_roi.y *= (double)img_mat.cols / target;
+            // keep within bounds
+            if (ofmarker_roi.x + ofmarker_roi.width > img_mat.cols) {
+                ofmarker_roi.x = img_mat.cols - ofmarker_roi.width;
+            }
+            if (ofmarker_roi.y + ofmarker_roi.height > img_mat.rows) {
+                ofmarker_roi.y = img_mat.rows - ofmarker_roi.height;
+            }
+            std::cout << "ofmarker_roi: " << ofmarker_roi << std::endl;
+            std::cout << ofmarker_roi.x + ofmarker_roi.width << " " << showing_img.cols << std::endl;
+            ofmarker.copyTo(img_mat(ofmarker_roi));
+            // update imgclone
+            cv::resize(img_mat, showing_img, cv::Size(target, int(target*(double)img_mat.rows/img_mat.cols)));
+            cv::resize(img_mat, selecttool_img, cv::Size(target, int(target*(double)img_mat.rows/img_mat.cols)));
+            imgclone = showing_img.clone();
         }
     }
 

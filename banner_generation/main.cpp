@@ -118,7 +118,17 @@ int main(int argc, char* argv[]) {
         // add img_alpha to banner
         cv::Mat banner_roi = banner(roi_touse);
         cv::addWeighted(banner_roi, 1.0, img_alpha, 1.0, 0.0, banner_roi);
+        // add text next to logo
+        // add text without qt no support
+
+        cv::putText(banner, "onlyfans.com/lysiavice", cv::Point(roi_touse.x + roi_touse.width + 5, roi_touse.y + roi_touse.height / 2 + 2), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(246, 152, 189, 255), 1 , cv::LINE_AA);
+        // put text with a light blue overlay background
+        // add light blue overlay on top of banner_roi + text
+
+
         
+        // save banner
+
 
         // update banner visual
         
