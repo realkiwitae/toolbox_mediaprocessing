@@ -37,20 +37,21 @@ void displayProgressBar(int progress, int total) {
     std::cout.flush();
 }
 
-
+bool bAddMarker = false;
+std::string symbol_path = "./symbol/ofmarker.png";
 
 int main(int argc, char* argv[]) {
 
  // Usage build/watermark -i <input_folder> -l <logo> -o <output_folder> -p <position> -s <size>
 
-    if(argc != 10) {
+    if(argc < 10) {
         std::cout << argc << std::endl;
         // print all args
         for (int i = 0; i < argc; i++) {
             std::cout << argv[i] << " ";
         }
         std::cout << std::endl;
-        std::cout << "Usage: " << argv[0] << " -i <input_folder> -l <logo> -o <output_folder> -p <p_img> <p_video>" << std::endl;
+        std::cout << "Usage: " << argv[0] << " -i <input_folder> -l <logo> -o <output_folder> -p <p_img> <p_video> -m <p_symbol" << std::endl;
         return 1;
     }
 
@@ -69,6 +70,9 @@ int main(int argc, char* argv[]) {
         }else if (std::string(argv[i]) == "-p") {
             percentage_img = std::stoi(argv[++i]);
             percentage_vid = std::stoi(argv[++i]);            
+        }else if(std::string(argv[i]) == "-m"){
+            bAddMarker = true;
+            symbol_path = argv[++i];
         }
     }
 
@@ -125,7 +129,25 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+void addMarker(cv::Mat& img_mat){
+    if(!bAddMarker) return;
+    cv::Mat ofmarker = cv::imread(symbol_path, cv::IMREAD_UNCHANGED);
 
+    cv::resize(ofmarker, ofmarker, cv::Size(img_mat.cols*.4,img_mat.cols*.4*ofmarker.rows/ofmarker.cols));
+    // if(ofmarker.channels() != 3){
+    //     //add alpha channel
+    //     cv::cvtColor(ofmarker, ofmarker, cv::COLOR_BGRA2BGR);
+    // }
+    cv::Rect2d ofmarker_roi = cv::Rect2d(img_mat.cols - ofmarker_roi.width, .8*img_mat.rows - ofmarker_roi.height, ofmarker.cols, ofmarker.rows);
+    // make sure within bounds
+    if(ofmarker_roi.x < 0) ofmarker_roi.x = 0;
+    if(ofmarker_roi.y < 0) ofmarker_roi.y = 0;
+    if(ofmarker_roi.x + ofmarker_roi.width > img_mat.cols) ofmarker_roi.x = img_mat.cols - ofmarker_roi.width;
+    if(ofmarker_roi.y + ofmarker_roi.height > img_mat.rows) ofmarker_roi.y = img_mat.rows - ofmarker_roi.height;
+
+    ofmarker.copyTo(img_mat(ofmarker_roi));
+
+}
 void treatImage(std::string img,cv::Mat logo_img,std::string output_folder, int id){
     
     //print processing...
@@ -134,7 +156,9 @@ void treatImage(std::string img,cv::Mat logo_img,std::string output_folder, int 
     // read image
     cv::Mat img_mat = cv::imread(img, cv::IMREAD_UNCHANGED);
     addLogo(img_mat, logo_img, percentage_img);
-    
+    addMarker(img_mat);
+
+
     std::string img_count_str = std::to_string(id);
     img_count_str = std::string(2 - img_count_str.length(), '0') + img_count_str;
     // get today date format yyyymmdd
@@ -199,6 +223,7 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
             break;
         }
         addLogo(frame, logo_img, percentage_vid);
+        addMarker(frame);
 
         // // show frame
         // cv::imshow("Frame", frame);

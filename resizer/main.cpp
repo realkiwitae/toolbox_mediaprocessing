@@ -14,12 +14,12 @@ void treatImage(std::string img,std::string output_folder, int id);
 int width = 3024;
 int height = 4032;
 bool bypass_crop = false;
-
+bool bypass_resize = true;
 int main(int argc, char* argv[]) {
 
  // build/resizer -i <input_folder> -o <output_folder> -s <size>
     // add usage
-    if (argc < 7) {
+    if (argc < 5) {
         std::cout << "Usage: " << argv[0] << " -i <input_folder> -o <output_folder> -s <size> -b" << std::endl;
         return 0;
     }
@@ -40,6 +40,7 @@ int main(int argc, char* argv[]) {
             std::string delimiter = "x";
             width = std::stoi(size.substr(0, size.find(delimiter)));
             height = std::stoi(size.substr(size.find(delimiter) + 1));
+            bypass_resize = false;
         }else if(std::string(argv[i]) == "-b"){
             bypass_crop = true;
         }
@@ -248,7 +249,7 @@ void treatImage(std::string img,std::string output_folder, int id){
     cv::Mat cropped_img = img_mat(roi);
 
     // resize to widthxheight using better quality
-    cv::resize(cropped_img, cropped_img, cv::Size(width, height), cv::INTER_CUBIC);
+    if(!bypass_resize)cv::resize(cropped_img, cropped_img, cv::Size(width, height), cv::INTER_CUBIC);
 
     std::string img_count_str = std::to_string(id);
     img_count_str = std::string(2 - img_count_str.length(), '0') + img_count_str;
