@@ -8,8 +8,8 @@ cd $1
 tmp=$(mktemp)
 
 # Loop through all video files in the folder, sort them by last modification date, and write their paths to the temporary file
-for f in $(ls -tr *.mp4); do echo "file '$PWD/$f'" >> "$tmp"; done
-#for f in $(ls -v *.mp4); do echo "file '$PWD/$f'" >> "$tmp"; done
+#for f in $(ls -tr *.mp4); do echo "file '$PWD/$f'" >> "$tmp"; done
+for f in $(ls -v *.mp4); do echo "file '$PWD/$f'" >> "$tmp"; done
 
 # Loop through all video files in the folder, sort them alphabetically by name, and write their paths to the temporary file
 #for f in $(ls *.mp4 | sort); do echo "file '$PWD/$f'" >> "$tmp"; done

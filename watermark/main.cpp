@@ -238,12 +238,27 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
     // free vieo capture
     cap.release();
     video.release();
-    // // keep sound from original video
-    std::string cmd = "ffmpeg -i " + file_path + " -i " + tmp_video + " -c copy -map 1:v:0 -map 0:a:0 " + output_path;
-    // silence output
-    cmd += " -loglevel panic";
 
-    system(cmd.c_str());
+    // check if sound in original video
+    std::string cmd = "ffprobe -i " + file_path + " -show_streams -select_streams a -loglevel error";
+    cmd += " | grep codec_name";
+    cmd += " | wc -l";
+    int result = system(cmd.c_str());
+
+    // if no sound in original video, add sound from tmp video
+    if(result != 0){
+        // // keep sound from original video
+        std::string cmd = "ffmpeg -i " + file_path + " -i " + tmp_video + " -c copy -map 1:v:0 -map 0:a:0 " + output_path;
+        // silence output
+        cmd += " -loglevel panic";
+
+        system(cmd.c_str());
+    }else{
+        //copy tmp to output
+        cmd = "cp " + tmp_video + " " + output_path;
+        system(cmd.c_str());
+    }
+
      // remove tmp video
     cmd = "rm " + tmp_video;
     system(cmd.c_str());
