@@ -2,6 +2,7 @@
 #include <chrono>
 #include <iomanip>
 #include <cstdlib>
+#include <ctime>
 #include <vector>
 #include <opencv2/opencv.hpp>
 #include <opencv2/tracking.hpp>
@@ -15,14 +16,17 @@ void addLogo(cv::Mat& img, cv::Mat logo_img, int p);
 int percentage_img = 10;
 int percentage_vid = 10;
 
-void displayProgressBar(int progress, int total) {
+void displayProgressBar(int progress, int total, std::chrono::high_resolution_clock::time_point start, std::chrono::high_resolution_clock::time_point finish) {
     constexpr int barWidth = 50;
 
     // Calculate the percentage completed
     float percentage = static_cast<float>(progress) / total;
     int completedWidth = static_cast<int>(barWidth * percentage);
 
-    // Display the progress bar
+    // Display the progress bar and time remaining
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
+    auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed * (total - progress));
+
     std::cout << "[";
     for (int i = 0; i < barWidth; ++i) {
         if (i < completedWidth) {
@@ -33,7 +37,15 @@ void displayProgressBar(int progress, int total) {
             std::cout << " ";
         }
     }
-    std::cout << "] " << static_cast<int>(percentage * 100) << "%\r";
+    std::cout << "] " << static_cast<int>(percentage * 100) << "% - ";
+    // rmaining in hh:mm::ss
+    long rem = remaining.count();
+    std::cout << std::setfill('0') << std::setw(2) << rem / 3600000 << ":";
+    rem %= 3600000;
+    std::cout << std::setfill('0') << std::setw(2) << rem / 60000 << ":";
+    rem %= 60000;
+    std::cout << std::setfill('0') << std::setw(2) << rem / 1000 << "\r";
+    std::cout << "%\r";
     std::cout.flush();
 }
 
@@ -163,9 +175,9 @@ void treatImage(std::string img,cv::Mat logo_img,std::string output_folder, int 
     img_count_str = std::string(2 - img_count_str.length(), '0') + img_count_str;
     // get today date format yyyymmdd
     std::time_t t = std::time(nullptr);
-    std::tm tm = *std::localtime(&t);
-    std::string date = std::to_string(tm.tm_year + 1900) + std::to_string(tm.tm_mon + 1) + std::to_string(tm.tm_mday);
-
+    char buffer[80];
+    std::strftime(buffer, 80, "%Y%m%d", std::localtime(&t));
+    std::string date(buffer);
     std::string output_path = output_folder + "/img_" + date +"_"+ img_count_str + ".jpg"; 
     cv::imwrite(output_path, img_mat);
 
@@ -200,8 +212,11 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
     std::string vid_count_str = std::to_string(id);
     vid_count_str = std::string(2 - vid_count_str.length(), '0') + vid_count_str;
     std::time_t t = std::time(nullptr);
-    std::tm tm = *std::localtime(&t);
-    std::string date = std::to_string(tm.tm_year + 1900) + std::to_string(tm.tm_mon + 1) + std::to_string(tm.tm_mday);
+
+    // std::tm to std::string format yyyymmdd padding with 0 
+    char buffer[80];
+    std::strftime(buffer, 80, "%Y%m%d", std::localtime(&t));
+    std::string date(buffer);
 
     std::string output_path = output_folder + "/vid_" + date + "_" + vid_count_str + ".mp4"; 
     
@@ -215,8 +230,8 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
     int progress = 0;
 
     while (true) {
+        auto start = std::chrono::high_resolution_clock::now();
         progress++;
-        displayProgressBar(progress, frame_count);
 
         cap >> frame;
         if (frame.empty()) {
@@ -233,11 +248,15 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
         cv::cvtColor(frame, frame, cv::COLOR_BGRA2BGR);
 
         video.write(frame);
+        auto finish = std::chrono::high_resolution_clock::now();
+        displayProgressBar(progress, frame_count, start, finish);
     }
 
     // free vieo capture
     cap.release();
     video.release();
+
+
 
     // check if sound in original video
     std::string cmd = "ffprobe -i " + file_path + " -show_streams -select_streams a -loglevel error";
@@ -246,18 +265,21 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
     int result = system(cmd.c_str());
 
     // if no sound in original video, add sound from tmp video
-    if(result != 0){
-        // // keep sound from original video
-        std::string cmd = "ffmpeg -i " + file_path + " -i " + tmp_video + " -c copy -map 1:v:0 -map 0:a:0 " + output_path;
-        // silence output
-        cmd += " -loglevel panic";
 
-        system(cmd.c_str());
-    }else{
-        //copy tmp to output
-        cmd = "cp " + tmp_video + " " + output_path;
-        system(cmd.c_str());
-    }
+        // // keep sound from original video
+    cmd = "ffmpeg -i " + file_path + " -i " + tmp_video + " -c copy -map 1:v:0 -map 0:a:0 " + output_path;
+    // silence output
+    cmd += " -loglevel panic";
+
+    system(cmd.c_str());
+
+    // if(result != 0){
+
+    // }else{
+    //     //copy tmp to output
+    //     cmd = "cp " + tmp_video + " " + output_path;
+    //     system(cmd.c_str());
+    // }
 
      // remove tmp video
     cmd = "rm " + tmp_video;
