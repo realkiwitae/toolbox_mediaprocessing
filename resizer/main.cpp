@@ -93,6 +93,12 @@ void treatImage(std::string img,std::string output_folder, int id){
     bool bAddedMarker = false;
     // read image
     cv::Mat img_mat = cv::imread(img, cv::IMREAD_UNCHANGED);
+    // can you take into account the flip flag of the image?
+    // flip image if needed
+    if (img_mat.cols > img_mat.rows) {
+        cv::rotate(img_mat, img_mat, cv::ROTATE_90_CLOCKWISE);
+    }
+
     cv::Mat showing_img,imgclone;
     cv::Mat selecttool_img;
 
@@ -227,6 +233,21 @@ void treatImage(std::string img,std::string output_folder, int id){
             cv::resize(img_mat, showing_img, cv::Size(target, int(target*(double)img_mat.rows/img_mat.cols)));
             cv::resize(img_mat, selecttool_img, cv::Size(target, int(target*(double)img_mat.rows/img_mat.cols)));
             imgclone = showing_img.clone();
+        }
+    
+        if(key == 249){
+            // add black border all around image 5%size of image height
+            cv::Mat imgclone2 = cv::Mat(img_mat.rows*1.1, img_mat.cols*1.1, img_mat.type(), cv::Scalar(0,0,0));
+            img_mat.copyTo(imgclone2(cv::Rect(1,1,img_mat.cols,img_mat.rows)));
+            img_mat = imgclone2.clone();
+            cv::resize(img_mat, showing_img, cv::Size(target, int(target*(double)img_mat.rows/img_mat.cols)));
+            cv::resize(img_mat, selecttool_img, cv::Size(target, int(target*(double)img_mat.rows/img_mat.cols)));
+            imgclone = showing_img.clone();
+            
+            roi.height = showing_img.rows;
+            roi.width = showing_img.cols;
+            roi.x = 0;
+            roi.y = 0;
         }
     }
 

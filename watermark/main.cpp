@@ -228,6 +228,12 @@ void treatVideo(std::string file_path,cv::Mat logo_img,std::string output_folder
 
     // make progress bar
     int progress = 0;
+    int fc = frame_count/ fps;
+    std::cout << "Frame count = " << frame_count << " to hh:mm:ss " << std::setfill('0') << std::setw(2) << fc / 3600 << ":";
+    fc %= 3600;
+    std::cout << std::setfill('0') << std::setw(2) << fc / 60 << ":";
+    fc %= 60;
+    std::cout << std::setfill('0') << std::setw(2) << fc << std::endl;
 
     while (true) {
         auto start = std::chrono::high_resolution_clock::now();
